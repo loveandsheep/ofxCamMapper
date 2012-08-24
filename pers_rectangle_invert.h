@@ -8,7 +8,7 @@
 #include "ofMain.h"
 #include "ofxOpenCv.h"
 
-class pers_rectangle{
+class pers_rectangle_invert{
 public:
     ofRectangle src;
     ofPoint srcp[4];

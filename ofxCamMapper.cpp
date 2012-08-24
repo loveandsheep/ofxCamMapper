@@ -13,6 +13,7 @@ ofxCamMapper::ofxCamMapper(){
 	camWin_pos = ofRectangle(640,0,CAM_WIDTH,CAM_HEIGHT);
 	Buffer_src.allocate(BUFFER_WIDTH, BUFFER_HEIGHT);
 	Buffer_out.allocate(BUFFER_WIDTH, BUFFER_HEIGHT);
+	Buffer_invert.allocate(BUFFER_WIDTH, BUFFER_HEIGHT);
 	camera.initGrabber(CAM_WIDTH, CAM_HEIGHT, true);
 	
 	sampleColor.set(200,0,0);
@@ -108,7 +109,8 @@ void ofxCamMapper::drawPanel(int x,int y){
 	src_editor.draw();
 	ofPopMatrix();
 	
-	
+	ofRect(0, 499, 322, 242);
+	Buffer_invert.draw(1, 500,320,240);
 	
 	//キャリブレーション表示
 	ofPushMatrix();
@@ -260,8 +262,10 @@ void ofxCamMapper::gen_Pts(){
 		ofSetColor(pattern_color);
 		if ((*out_pts).size() == 0)
 		{
-			ofRect(0, 0, BUFFER_WIDTH, BUFFER_HEIGHT);			
+			ofRect(0, 0, BUFFER_WIDTH, BUFFER_HEIGHT);
+			Buffer_out.end();
 		}else {
+			
 			ofSetHexColor(0xFFFFFF);
 			Buffer_src.getTextureReference().bind();
 			for (int i = 0;i < src_editor.tris.size();i++){
@@ -274,36 +278,78 @@ void ofxCamMapper::gen_Pts(){
 				}
 				glEnd();
 			}
-			for (int i = 0;i < src_editor.rects.size();i++){
-				pers_rectangle pr;
-				for (int j = 0;j < 4;j++){
-					pr.srcp[j] = src_editor.pts[src_editor.rects[i].idx[j]] / ofPoint(BUFFER_WIDTH,BUFFER_HEIGHT);
-					pr.pts[j]  = vert_child.pts[src_editor.rects[i].idx[j]] / ofPoint(BUFFER_WIDTH,BUFFER_HEIGHT);
-				}
-				glPushMatrix();
-				pr.setMatrix(BUFFER_WIDTH, BUFFER_HEIGHT);
-				glBegin(GL_QUADS);
-				
-				glTexCoord2f(src_editor.pts[src_editor.rects[i].idx[0]].x,
-							 src_editor.pts[src_editor.rects[i].idx[0]].y);
-				glVertex2f(0,0);
-				
-				glTexCoord2f(src_editor.pts[src_editor.rects[i].idx[1]].x,
-							 src_editor.pts[src_editor.rects[i].idx[1]].y);
-				glVertex2f(BUFFER_WIDTH,0);
-				
-				glTexCoord2f(src_editor.pts[src_editor.rects[i].idx[2]].x,
-							 src_editor.pts[src_editor.rects[i].idx[2]].y);
-				glVertex2f(BUFFER_WIDTH,BUFFER_HEIGHT);
-				
-				glTexCoord2f(src_editor.pts[src_editor.rects[i].idx[3]].x,
-							 src_editor.pts[src_editor.rects[i].idx[3]].y);
-				glVertex2f(0,BUFFER_HEIGHT);
-				
-				glEnd();
-				glPopMatrix();
-			}
 			Buffer_src.getTextureReference().unbind();
+			Buffer_out.end();
+			
+			if (inverse_affine){
+				for (int i = 0;i < src_editor.rects.size();i++){
+					pers_rectangle pr;
+					pers_rectangle_invert pri;
+					
+					for (int j = 0;j < 4;j++){
+						pr.srcp[j]  = src_editor.pts[src_editor.rects[i].idx[j]] / ofPoint(BUFFER_WIDTH,BUFFER_HEIGHT);
+						pr.pts[j]   = vert_child.pts[src_editor.rects[i].idx[j]] / ofPoint(BUFFER_WIDTH,BUFFER_HEIGHT);
+						pri.srcp[j]  = src_editor.pts[src_editor.rects[i].idx[j]] / ofPoint(BUFFER_WIDTH,BUFFER_HEIGHT);
+						pri.pts[j]   = src_editor.pts[src_editor.rects[i].idx[j]] / ofPoint(BUFFER_WIDTH,BUFFER_HEIGHT);
+					}
+					pri.pts[0] = ofPoint(0,0);
+					pri.pts[1] = ofPoint(1,0);
+					pri.pts[2] = ofPoint(1,1);
+					pri.pts[3] = ofPoint(0,1);
+					pr.srcp[0] = ofPoint(0,0);
+					pr.srcp[1] = ofPoint(1,0);
+					pr.srcp[2] = ofPoint(1,1);
+					pr.srcp[3] = ofPoint(0,1);
+					
+					//逆行列の計算
+					Buffer_invert.begin();
+					ofClear(0, 0, 0);
+					Buffer_src.getTextureReference().bind();
+					glPushMatrix();
+					pri.setMatrix(BUFFER_WIDTH, BUFFER_HEIGHT);
+					glBegin(GL_QUADS);
+					
+					for (int j = 0;j < 4;j++){
+						glTexCoord2f(src_editor.pts[src_editor.rects[i].idx[j]].x,
+									 src_editor.pts[src_editor.rects[i].idx[j]].y);
+						glVertex2f(src_editor.pts[src_editor.rects[i].idx[j]].x,
+								   src_editor.pts[src_editor.rects[i].idx[j]].y);					
+					}
+					
+					glEnd();
+					
+					glPopMatrix();
+					Buffer_src.getTextureReference().unbind();
+					Buffer_invert.end();
+					
+					//インバースから引っ張ってくる
+					Buffer_out.begin();
+					Buffer_invert.getTextureReference().bind();
+					glPushMatrix();
+					pr.setMatrix(BUFFER_WIDTH, BUFFER_HEIGHT);
+					glBegin(GL_QUADS);
+					
+					glTexCoord2f(0,0);
+					glVertex2f  (0,0);
+					
+					glTexCoord2f(BUFFER_WIDTH,0);
+					glVertex2f  (BUFFER_WIDTH,0);
+					
+					glTexCoord2f(BUFFER_WIDTH,BUFFER_HEIGHT);
+					glVertex2f  (BUFFER_WIDTH,BUFFER_HEIGHT);
+					
+					glTexCoord2f(0,BUFFER_HEIGHT);
+					glVertex2f  (0,BUFFER_HEIGHT);
+					
+					glEnd();
+					glPopMatrix();
+					Buffer_invert.getTextureReference().unbind();
+					Buffer_out.end();
+				}	
+			}else{
+				
+			}
+
 		}
 		ofSetHexColor(0xFFFFFF);
 //		for (int i = 0;i < (*out_pts).size();i++){
@@ -316,6 +362,7 @@ void ofxCamMapper::gen_Pts(){
 //			ofLine((*out_pts)[i].x, (*out_pts)[i].y-5, (*out_pts)[i].x, (*out_pts)[i].y+5);
 //			ofFill();
 //		}
+		Buffer_out.begin();
 		vert_child.buffer.draw(0, 0,BUFFER_WIDTH,BUFFER_HEIGHT);
 		Buffer_out.end();
 	}

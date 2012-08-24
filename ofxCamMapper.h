@@ -10,6 +10,7 @@
 #include "ofxClickDownMenu.h"
 #include "ofxMultiPointEditor.h"
 #include "pers_rectangle.h"
+#include "pers_rectangle_invert.h"
 
 #define PHASE_CAMERA 0
 #define PHASE_OUT 1
@@ -47,6 +48,7 @@ public:
 	
 	ofFbo Buffer_src;
 	ofFbo Buffer_out;
+	ofFbo Buffer_invert;
 	ofVideoGrabber camera;
 	
 	deque<ofPoint> src_pts;//打ちたいソースのポイント
@@ -71,6 +73,7 @@ public:
 	int phase_x,phase_y;
 	int phase,head,size,color_score,calib_waiter;
 	bool calib_next;
+	bool inverse_affine;
 	ofPoint answer;
 	ofColor pattern_color;
 	

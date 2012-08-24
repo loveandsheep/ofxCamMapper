@@ -1,23 +1,23 @@
 //
-//  pers_rectangle.cpp
+//  pers_rectangle_invert.cpp
 //  ofxMpplrExample
 //
 //  Created by 洋紀 加治 on 12/04/23.
 //  Copyright (c) 2012年 __MyCompanyName__. All rights reserved.
 //
 
-#include "pers_rectangle.h"
+#include "pers_rectangle_invert.h"
 
-void pers_rectangle::setMatrix(int width,int height){
+void pers_rectangle_invert::setMatrix(int width,int height){
     //lets make a matrix for openGL
 	//this will be the matrix that peforms the transformation
-	GLfloat myMatrix[16];
+	GLfloat m[16],im[16];
     
 	//we set it to the default - 0 translation
 	//and 1.0 scale for x y z and w
 	for(int i = 0; i < 16; i++){
-		if(i % 5 != 0) myMatrix[i] = 0.0;
-		else myMatrix[i] = 1.0;
+		if(i % 5 != 0) m[i] = 0.0;
+		else m[i] = 1.0;
 	}
 
 	//we need our points as opencv points
@@ -27,20 +27,20 @@ void pers_rectangle::setMatrix(int width,int height){
     
 	//we set the warp coordinates
 	//source coordinates as the dimensions of our window
-    cvsrc[0].x = 0;
-    cvsrc[0].y = 0;
-    cvsrc[1].x = width;
-    cvsrc[1].y = 0;
-    cvsrc[2].x = width;
-    cvsrc[2].y = height;
-    cvsrc[3].x = 0;
-    cvsrc[3].y = height;
+    cvdst[0].x = 0;
+    cvdst[0].y = 0;
+    cvdst[1].x = width;
+    cvdst[1].y = 0;
+    cvdst[2].x = width;
+    cvdst[2].y = height;
+    cvdst[3].x = 0;
+    cvdst[3].y = height;
     
 	//corners are in 0.0 - 1.0 range
 	//so we scale up so that they are at the window's scale
 	for(int i = 0; i < 4; i++){
-		cvdst[i].x = pts[i].x * width;
-		cvdst[i].y = pts[i].y * height;
+		cvsrc[i].x = srcp[i].x * width;
+		cvsrc[i].y = srcp[i].y * height;
 	}
     
 	//we create a matrix that will store the results
@@ -89,20 +89,47 @@ void pers_rectangle::setMatrix(int width,int height){
 	//       [2][5][ ][8]
 	//       
     
-	myMatrix[0]		= matrix[0];
-	myMatrix[4]		= matrix[1];
-	myMatrix[12]	= matrix[2];
+	m[0]		= matrix[0];
+	m[4]		= matrix[1];
+	m[12]		= matrix[2];
 	
-	myMatrix[1]		= matrix[3];
-	myMatrix[5]		= matrix[4];
-	myMatrix[13]	= matrix[5];
+	m[1]		= matrix[3];
+	m[5]		= matrix[4];
+	m[13]		= matrix[5];
 	
-	myMatrix[3]		= matrix[6];
-	myMatrix[7]		= matrix[7];
-	myMatrix[15]	= matrix[8];
+	m[3]		= matrix[6];
+	m[7]		= matrix[7];
+	m[15]		= matrix[8];
+	
+	
+//	//逆行列パーリナイ
+//	im[0]	=	(m[ 5]*(m[10]*m[15] - m[11]*m[14]) + m[ 6]*(m[11]*m[13] - m[9 ]*m[15]) + m[ 7]*(m[ 9]*m[14] - m[10]*m[13]));
+//	im[1]	=	(m[ 9]*(m[14]*m[ 3] - m[15]*m[ 2]) + m[10]*(m[15]*m[ 1] - m[13]*m[ 3]) + m[11]*(m[12]*m[ 2] - m[14]*m[ 1]));
+//	im[2]	=	(m[13]*(m[ 2]*m[ 7] - m[ 3]*m[ 6]) + m[14]*(m[ 3]*m[ 5] - m[ 1]*m[ 7]) + m[15]*(m[ 1]*m[ 6] - m[ 2]*m[ 5]));
+//	im[3]	=	(m[ 1]*(m[ 6]*m[11] - m[ 7]*m[10]) + m[ 2]*(m[ 7]*m[ 9] - m[ 5]*m[11]) + m[ 3]*(m[ 5]*m[10] - m[ 6]*m[ 9]));
+//
+//	im[4]	=	(m[ 6]*(m[11]*m[12] - m[ 8]*m[15]) + m[ 7]*(m[ 8]*m[14] - m[10]*m[12]) + m[ 4]*(m[10]*m[15] - m[11]*m[14]));
+//	im[5]	=	(m[10]*(m[15]*m[ 0] - m[12]*m[ 3]) + m[11]*(m[12]*m[ 2] - m[14]*m[ 0]) + m[ 8]*(m[14]*m[ 3] - m[15]*m[ 2]));
+//	im[6]	=	(m[14]*(m[ 3]*m[ 4] - m[ 0]*m[ 7]) + m[15]*(m[ 0]*m[ 6] - m[ 2]*m[ 4]) + m[12]*(m[ 2]*m[ 7] - m[ 3]*m[ 6]));
+//	im[7]	=	(m[ 2]*(m[ 7]*m[ 8] - m[ 4]*m[11]) + m[ 3]*(m[ 4]*m[10] - m[ 6]*m[ 8]) + m[ 0]*(m[ 6]*m[11] - m[ 7]*m[10]));
+//
+//	im[8]	=	(m[ 7]*(m[ 8]*m[13] - m[ 9]*m[12]) + m[ 4]*(m[ 9]*m[15] - m[11]*m[13]) + m[ 5]*(m[11]*m[12] - m[ 8]*m[15]));
+//	im[9]	=	(m[11]*(m[12]*m[ 1] - m[13]*m[ 0]) + m[ 8]*(m[13]*m[ 3] - m[15]*m[ 1]) + m[ 9]*(m[15]*m[ 0] - m[12]*m[ 3]));
+//	im[10]	=	(m[15]*(m[ 0]*m[ 5] - m[ 1]*m[ 4]) + m[12]*(m[ 1]*m[ 7] - m[ 3]*m[ 5]) + m[13]*(m[ 3]*m[ 4] - m[ 0]*m[ 7]));
+//	im[11]	=	(m[ 3]*(m[ 4]*m[ 9] - m[ 5]*m[ 8]) + m[ 0]*(m[ 5]*m[11] - m[ 7]*m[ 9]) + m[ 1]*(m[ 7]*m[ 8] - m[ 4]*m[11]));
+//	
+//	im[12]	=	(m[ 4]*(m[ 9]*m[14] - m[10]*m[13]) + m[ 5]*(m[10]*m[12] - m[ 8]*m[14]) + m[ 6]*(m[ 8]*m[13] - m[ 9]*m[12]));
+//	im[13]	=	(m[ 8]*(m[13]*m[ 2] - m[14]*m[ 1]) + m[ 9]*(m[14]*m[ 0] - m[12]*m[ 2]) + m[10]*(m[12]*m[ 1] - m[13]*m[ 0]));
+//	im[14]	=	(m[12]*(m[ 1]*m[ 6] - m[ 2]*m[ 5]) + m[13]*(m[ 2]*m[ 4] - m[ 0]*m[ 6]) + m[14]*(m[ 0]*m[ 5] - m[ 1]*m[ 4]));
+//	im[15]	=	(m[ 0]*(m[ 5]*m[10] - m[ 6]*m[ 9]) + m[ 1]*(m[ 6]*m[ 8] - m[ 4]*m[10]) + m[ 2]*(m[ 4]*m[ 9] - m[ 5]*m[ 8]));
+//
+//	float determ = m[0]*im[0] + m[4]*im[1] + m[8]*im[2] + m[12]*im[3];
+//	
+//	for (int i = 0;i < 16;i++){
+//		im[i] = im[i]/determ;
+//	}
     
-	
 	//finally lets multiply our matrix
 	//wooooo hoooo!
-	glMultMatrixf(myMatrix);    
+	glMultMatrixf(m);    
 }
