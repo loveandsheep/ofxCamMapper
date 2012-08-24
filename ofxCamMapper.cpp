@@ -48,9 +48,11 @@ ofxCamMapper::ofxCamMapper(){
 	float flex_width = MIN(1440-BUFFER_WIDTH,320);
 	float flex_height = flex_width/4.0*3.0;
 	camWin_pos.set		(0, 0, CAM_WIDTH,CAM_HEIGHT);
-	vert_child.SetArea	(BUFFER_WIDTH,0,flex_width,flex_height);		
+	vert_child.SetArea	(BUFFER_WIDTH,0,flex_width,flex_height);
 	src_editor.SetArea	(BUFFER_WIDTH,flex_height,flex_width,flex_height);
 	mainView = MAINVIEW_CAMERA;
+	
+	inverse_affine = true;
 }
 
 
@@ -108,9 +110,6 @@ void ofxCamMapper::drawPanel(int x,int y){
 	ofPopMatrix();
 	src_editor.draw();
 	ofPopMatrix();
-	
-	ofRect(0, 499, 322, 242);
-	Buffer_invert.draw(1, 500,320,240);
 	
 	//キャリブレーション表示
 	ofPushMatrix();
@@ -347,7 +346,39 @@ void ofxCamMapper::gen_Pts(){
 					Buffer_out.end();
 				}	
 			}else{
-				
+				for (int i = 0;i < src_editor.rects.size();i++){
+					Buffer_out.begin();
+					Buffer_src.getTextureReference().bind();
+					pers_rectangle pr;
+					for (int j = 0;j < 4;j++){
+						pr.srcp[j] = src_editor.pts[src_editor.rects[i].idx[j]] / ofPoint(BUFFER_WIDTH,BUFFER_HEIGHT);
+						pr.pts[j]  = vert_child.pts[src_editor.rects[i].idx[j]] / ofPoint(BUFFER_WIDTH,BUFFER_HEIGHT);
+					}
+					glPushMatrix();
+					pr.setMatrix(BUFFER_WIDTH, BUFFER_HEIGHT);
+					glBegin(GL_QUADS);
+					
+					glTexCoord2f(src_editor.pts[src_editor.rects[i].idx[0]].x,
+								 src_editor.pts[src_editor.rects[i].idx[0]].y);
+					glVertex2f(0,0);
+					
+					glTexCoord2f(src_editor.pts[src_editor.rects[i].idx[1]].x,
+								 src_editor.pts[src_editor.rects[i].idx[1]].y);
+					glVertex2f(BUFFER_WIDTH,0);
+					
+					glTexCoord2f(src_editor.pts[src_editor.rects[i].idx[2]].x,
+								 src_editor.pts[src_editor.rects[i].idx[2]].y);
+					glVertex2f(BUFFER_WIDTH,BUFFER_HEIGHT);
+					
+					glTexCoord2f(src_editor.pts[src_editor.rects[i].idx[3]].x,
+								 src_editor.pts[src_editor.rects[i].idx[3]].y);
+					glVertex2f(0,BUFFER_HEIGHT);
+					
+					glEnd();
+					glPopMatrix();
+					Buffer_src.getTextureReference().unbind();
+					Buffer_out.end();
+				}
 			}
 
 		}
@@ -399,6 +430,7 @@ void ofxCamMapper::mouseMoved(ofMouseEventArgs & args){
 		menu.Enable = false;
 	}
 }
+
 void ofxCamMapper::mouseDragged(ofMouseEventArgs & args){
 	
 }
@@ -426,7 +458,7 @@ void ofxCamMapper::keyPressed(ofKeyEventArgs & key){
 		camWin_pos.set		(BUFFER_WIDTH,  0, flex_width,flex_height);
 		vert_child.SetArea	(BUFFER_WIDTH,flex_height, flex_width,flex_height);
 	}
-	
+	if (key.key == ' ') inverse_affine ^= true;
 
 }
 void ofxCamMapper::keyReleased(ofKeyEventArgs & key){
