@@ -340,7 +340,7 @@ void ofxCamMapper::gen_Pts(){
 					pr.srcp[2] = ofPoint(1,1);
 					pr.srcp[3] = ofPoint(0,1);
 					
-					//逆行列の計算
+					//逆行列の計算する
 					Buffer_invert.begin();
 					ofClear(0, 0, 0);
 					Buffer_src.getTextureReference().bind();
