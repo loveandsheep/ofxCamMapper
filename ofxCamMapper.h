@@ -17,8 +17,8 @@
 #define PHASE_SRC 2
 
 //演算の関係でfloat型にしといて欲しい
-#define BUFFER_WIDTH 1024.0f
-#define BUFFER_HEIGHT 768.0f
+#define BUFFER_WIDTH 1920.0f
+#define BUFFER_HEIGHT 1080.0f
 #define CAM_WIDTH 640.0f
 #define CAM_HEIGHT 480.0f
 
@@ -79,4 +79,6 @@ public:
 	
 	ofxMultiPointEditor src_editor,vert_child;
 	int mainView;
+	ofPoint main_scroll;
+	bool drawChild;
 };

@@ -13,5 +13,5 @@ public:
     ofRectangle src;
     ofPoint srcp[4];
     ofPoint pts[4];
-    void setMatrix(int width,int height);
+    void setMatrix(float width,float height);
 };

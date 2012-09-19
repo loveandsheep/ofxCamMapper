@@ -16,7 +16,7 @@ ofxCamMapper::ofxCamMapper(){
 	Buffer_invert.allocate(BUFFER_WIDTH, BUFFER_HEIGHT);
 	camera.initGrabber(CAM_WIDTH, CAM_HEIGHT, true);
 	
-	sampleColor.set(200,0,0);
+	sampleColor.set(255,0,0);
 	
 	ofRegisterKeyEvents(this);
 	ofRegisterMouseEvents(this);
@@ -28,11 +28,11 @@ ofxCamMapper::ofxCamMapper(){
 
 	ofAddListener(ofxCDMEvent::MenuPressed, this, &ofxCamMapper::cdmEvent);
 	
-	calib_waitMs = 60;
-	calib_lateMs = 230;
+	calib_waitMs = 100;
+	calib_lateMs = 330;
 	Genframe = 0;
 	bGen_Mapping = false;
-	pattern_color.set(0,155,0);
+	pattern_color.set(255,0,0);
 	
 	src_editor.SetArea(0, 0,BUFFER_WIDTH,BUFFER_HEIGHT);
 	src_editor.SetArea(0, 480,640,480);
@@ -53,6 +53,7 @@ ofxCamMapper::ofxCamMapper(){
 	mainView = MAINVIEW_CAMERA;
 	
 	inverse_affine = true;
+	main_scroll.set(0, 0);
 }
 
 
@@ -91,24 +92,62 @@ void ofxCamMapper::drawPanel(int x,int y){
 	}
 	ofPopMatrix();
 	
+	main_scroll.set(MAX(0,MIN(ofGetMouseX(),BUFFER_WIDTH-1024.0)),
+					MAX(0,MIN(ofGetMouseY(),BUFFER_HEIGHT-768)));
+	
+	
 	//メインアウトポジションの描画
 	ofSetHexColor(0xFFFFFF);
 	ofPushMatrix();
 	ofTranslate(vert_child.drawArea.x,vert_child.drawArea.y);
-	Buffer_out.draw(0, 0,vert_child.drawArea.width,vert_child.drawArea.height);
-	vert_child.draw();
+	if (vert_child.enableScroll){
+		Buffer_out.getTextureReference().bind();
+		glBegin(GL_TRIANGLE_STRIP);
+		glTexCoord2f(vert_child.sclPt.x,vert_child.sclPt.y);
+		glVertex2f(0, 0);
+		glTexCoord2f(vert_child.sclPt.x+vert_child.drawArea.width,vert_child.sclPt.y);
+		glVertex2f(vert_child.drawArea.width, 0);
+		glTexCoord2f(vert_child.sclPt.x,vert_child.sclPt.y+vert_child.drawArea.height);
+		glVertex2f(0, vert_child.drawArea.height);
+		glTexCoord2f(vert_child.sclPt.x+vert_child.drawArea.width,vert_child.sclPt.y+vert_child.drawArea.height);
+		glVertex2f(vert_child.drawArea.width,vert_child.drawArea.height);
+		glEnd();
+		Buffer_out.getTextureReference().unbind();
+	}else{
+		Buffer_out.draw(0, 0,vert_child.drawArea.width,vert_child.drawArea.height);
+	}
+	if (drawChild){
+		vert_child.draw();
+	}
 	ofPopMatrix();
 
 	//ソースポジションの描画
 	ofSetHexColor(0xFFFFFF);
 	ofPushMatrix();
 	ofTranslate(src_editor.drawArea.x,src_editor.drawArea.y);
-	Buffer_src.draw(0, 0,src_editor.drawArea.width,src_editor.drawArea.height);
+	if (src_editor.enableScroll){
+		Buffer_src.getTextureReference().bind();
+		glBegin(GL_TRIANGLE_STRIP);
+		glTexCoord2f(src_editor.sclPt.x,src_editor.sclPt.y);
+		glVertex2f(0, 0);
+		glTexCoord2f(src_editor.sclPt.x+src_editor.drawArea.width,src_editor.sclPt.y);
+		glVertex2f(src_editor.drawArea.width, 0);
+		glTexCoord2f(src_editor.sclPt.x,src_editor.sclPt.y+src_editor.drawArea.height);
+		glVertex2f(0, src_editor.drawArea.height);
+		glTexCoord2f(src_editor.sclPt.x+src_editor.drawArea.width,src_editor.sclPt.y+src_editor.drawArea.height);
+		glVertex2f(src_editor.drawArea.width,src_editor.drawArea.height);
+		glEnd();
+		Buffer_src.getTextureReference().unbind();
+	}else{
+		Buffer_src.draw(0, 0,src_editor.drawArea.width,src_editor.drawArea.height);
+	}
 	for (int i = 0;i < src_pts.size();i++){
 		ofCircle(src_pts[i].x, src_pts[i].y, 3);
 	}
 	ofPopMatrix();
-	src_editor.draw();
+	if (drawChild){
+		src_editor.draw();		
+	}
 	ofPopMatrix();
 	
 	//キャリブレーション表示
@@ -125,9 +164,9 @@ void ofxCamMapper::drawPanel(int x,int y){
 	
 	ofDrawBitmapString(info, 10,540);
 	
-	if ((abs(trackingColor.r - sampleColor.r) < 150)&&
-		(abs(trackingColor.g - sampleColor.g) < 150)&&
-		(abs(trackingColor.b - sampleColor.b) < 150)){
+	if ((abs(trackingColor.r - sampleColor.r) < 100)&&
+		(abs(trackingColor.g - sampleColor.g) < 100)&&
+		(abs(trackingColor.b - sampleColor.b) < 100)){
 		ofNoFill();
 		ofSetHexColor(0xFFFFFF);
 		ofRect(0, 480, 80, 40);
@@ -295,6 +334,7 @@ void ofxCamMapper::gen_Pts(){
 					pri.pts[1] = ofPoint(1,0);
 					pri.pts[2] = ofPoint(1,1);
 					pri.pts[3] = ofPoint(0,1);
+					
 					pr.srcp[0] = ofPoint(0,0);
 					pr.srcp[1] = ofPoint(1,0);
 					pr.srcp[2] = ofPoint(1,1);
@@ -306,15 +346,28 @@ void ofxCamMapper::gen_Pts(){
 					Buffer_src.getTextureReference().bind();
 					glPushMatrix();
 					pri.setMatrix(BUFFER_WIDTH, BUFFER_HEIGHT);
-					glBegin(GL_QUADS);
+					glBegin(GL_TRIANGLE_STRIP);
 					
-					for (int j = 0;j < 4;j++){
-						glTexCoord2f(src_editor.pts[src_editor.rects[i].idx[j]].x,
-									 src_editor.pts[src_editor.rects[i].idx[j]].y);
-						glVertex2f(src_editor.pts[src_editor.rects[i].idx[j]].x,
-								   src_editor.pts[src_editor.rects[i].idx[j]].y);					
-					}
-					
+					glTexCoord2f(src_editor.pts[src_editor.rects[i].idx[0]].x,
+								 src_editor.pts[src_editor.rects[i].idx[0]].y);
+					glVertex2f(src_editor.pts[src_editor.rects[i].idx[0]].x,
+							   src_editor.pts[src_editor.rects[i].idx[0]].y);
+
+					glTexCoord2f(src_editor.pts[src_editor.rects[i].idx[1]].x,
+								 src_editor.pts[src_editor.rects[i].idx[1]].y);
+					glVertex2f(src_editor.pts[src_editor.rects[i].idx[1]].x,
+							   src_editor.pts[src_editor.rects[i].idx[1]].y);
+
+					glTexCoord2f(src_editor.pts[src_editor.rects[i].idx[3]].x,
+								 src_editor.pts[src_editor.rects[i].idx[3]].y);
+					glVertex2f(src_editor.pts[src_editor.rects[i].idx[3]].x,
+							   src_editor.pts[src_editor.rects[i].idx[3]].y);
+
+					glTexCoord2f(src_editor.pts[src_editor.rects[i].idx[2]].x,
+								 src_editor.pts[src_editor.rects[i].idx[2]].y);
+					glVertex2f(src_editor.pts[src_editor.rects[i].idx[2]].x,
+							   src_editor.pts[src_editor.rects[i].idx[2]].y);
+
 					glEnd();
 					
 					glPopMatrix();
@@ -326,7 +379,7 @@ void ofxCamMapper::gen_Pts(){
 					Buffer_invert.getTextureReference().bind();
 					glPushMatrix();
 					pr.setMatrix(BUFFER_WIDTH, BUFFER_HEIGHT);
-					glBegin(GL_QUADS);
+					glBegin(GL_TRIANGLE_STRIP);
 					
 					glTexCoord2f(0,0);
 					glVertex2f  (0,0);
@@ -334,11 +387,11 @@ void ofxCamMapper::gen_Pts(){
 					glTexCoord2f(BUFFER_WIDTH,0);
 					glVertex2f  (BUFFER_WIDTH,0);
 					
-					glTexCoord2f(BUFFER_WIDTH,BUFFER_HEIGHT);
-					glVertex2f  (BUFFER_WIDTH,BUFFER_HEIGHT);
-					
 					glTexCoord2f(0,BUFFER_HEIGHT);
 					glVertex2f  (0,BUFFER_HEIGHT);
+
+					glTexCoord2f(BUFFER_WIDTH,BUFFER_HEIGHT);
+					glVertex2f  (BUFFER_WIDTH,BUFFER_HEIGHT);
 					
 					glEnd();
 					glPopMatrix();
@@ -394,7 +447,9 @@ void ofxCamMapper::gen_Pts(){
 //			ofFill();
 //		}
 		Buffer_out.begin();
-		vert_child.buffer.draw(0, 0,BUFFER_WIDTH,BUFFER_HEIGHT);
+		if (drawChild) {
+			vert_child.buffer.draw(0, 0,BUFFER_WIDTH,BUFFER_HEIGHT);
+		}
 		Buffer_out.end();
 	}
 }
@@ -438,28 +493,34 @@ void ofxCamMapper::mouseDragged(ofMouseEventArgs & args){
 void ofxCamMapper::keyPressed(ofKeyEventArgs & key){
 	if (key.key == 'c') sampleColor = trackingColor;
 	
-	float flex_width = MIN(1440-BUFFER_WIDTH,320);
+	float flex_width = MIN(1440-1024,320);
 	float flex_height = flex_width/4.0*3.0;
 	if (key.key == '1') {
+		vert_child.enableScroll = false;
+		src_editor.enableScroll = false;
 		mainView = MAINVIEW_CAMERA;
 		camWin_pos.set		(0, 0, CAM_WIDTH,CAM_HEIGHT);
-		vert_child.SetArea	(BUFFER_WIDTH,0,flex_width,flex_height);		
-		src_editor.SetArea	(BUFFER_WIDTH,flex_height,flex_width,flex_height);
+		vert_child.SetArea	(1024,0,flex_width,flex_height);
+		src_editor.SetArea	(1024,flex_height,flex_width,flex_height);
 	}
 	if (key.key == '2') {
+		vert_child.enableScroll = true;
+		src_editor.enableScroll = false;
 		mainView = MAINVIEW_PROJOUT;
-		vert_child.SetArea	(0,0,BUFFER_WIDTH,BUFFER_HEIGHT);
-		camWin_pos.set		(BUFFER_WIDTH,  0, flex_width,flex_height);
-		src_editor.SetArea	(BUFFER_WIDTH,flex_height, flex_width,flex_height);
+		vert_child.SetArea	(0,0,1024,1024/BUFFER_WIDTH*BUFFER_HEIGHT);
+		camWin_pos.set		(1024,  0, flex_width,flex_height);
+		src_editor.SetArea	(1024,flex_height, flex_width,flex_height);
 	}
 	if (key.key == '3') {
+		vert_child.enableScroll = false;
+		src_editor.enableScroll = true;
 		mainView = MAINVIEW_SOURCE;
-		src_editor.SetArea	(0,0,BUFFER_WIDTH,BUFFER_HEIGHT);
-		camWin_pos.set		(BUFFER_WIDTH,  0, flex_width,flex_height);
-		vert_child.SetArea	(BUFFER_WIDTH,flex_height, flex_width,flex_height);
+		src_editor.SetArea	(0,0,1024,1024/BUFFER_WIDTH*BUFFER_HEIGHT);
+		camWin_pos.set		(1024,  0, flex_width,flex_height);
+		vert_child.SetArea	(1024,flex_height, flex_width,flex_height);
 	}
 	if (key.key == ' ') inverse_affine ^= true;
-
+	if (key.key == 'd') drawChild ^= true;
 }
 void ofxCamMapper::keyReleased(ofKeyEventArgs & key){
 
