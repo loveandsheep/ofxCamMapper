@@ -35,9 +35,8 @@ ofxCamMapper::ofxCamMapper(){
 	pattern_color.set(255,0,0);
 	
 	src_editor.SetArea(0, 0,BUFFER_WIDTH,BUFFER_HEIGHT);
-	src_editor.SetArea(0, 480,640,480);
 	vert_child.SetArea(0, 0, BUFFER_WIDTH, BUFFER_HEIGHT);
-	vert_child.SetArea(0,	0, 640,480);
+	mask.SetArea(0, 0, BUFFER_WIDTH, BUFFER_HEIGHT);
 	
 	src_editor.setChild(&vert_child);
 	out_pts = &src_editor.pts;
@@ -50,6 +49,7 @@ ofxCamMapper::ofxCamMapper(){
 	camWin_pos.set		(0, 0, CAM_WIDTH,CAM_HEIGHT);
 	vert_child.SetArea	(BUFFER_WIDTH,0,flex_width,flex_height);
 	src_editor.SetArea	(BUFFER_WIDTH,flex_height,flex_width,flex_height);
+	mask.SetArea(0,900,3,3);
 	mainView = MAINVIEW_CAMERA;
 	
 	inverse_affine = true;
@@ -146,7 +146,31 @@ void ofxCamMapper::drawPanel(int x,int y){
 	}
 	ofPopMatrix();
 	if (drawChild){
-		src_editor.draw();		
+		src_editor.draw();
+	}
+	ofPopMatrix();
+	
+	
+	//マスクの描画
+	ofSetHexColor(0xFFFFFF);
+	ofPushMatrix();
+	ofTranslate(mask.drawArea.x, mask.drawArea.y);
+	if (mask.enableScroll){
+		Buffer_out.getTextureReference().bind();
+		glBegin(GL_TRIANGLE_STRIP);
+		glTexCoord2f(mask.sclPt.x,mask.sclPt.y);
+		glVertex2f(0, 0);
+		glTexCoord2f(mask.sclPt.x+mask.drawArea.width,mask.sclPt.y);
+		glVertex2f(mask.drawArea.width, 0);
+		glTexCoord2f(mask.sclPt.x,mask.sclPt.y+mask.drawArea.height);
+		glVertex2f(0, mask.drawArea.height);
+		glTexCoord2f(mask.sclPt.x+mask.drawArea.width,mask.sclPt.y+mask.drawArea.height);
+		glVertex2f(mask.drawArea.width,mask.drawArea.height);
+		glEnd();
+		Buffer_out.getTextureReference().unbind();
+	}
+	if (drawChild){
+		mask.draw();		
 	}
 	ofPopMatrix();
 	
@@ -177,6 +201,20 @@ void ofxCamMapper::drawPanel(int x,int y){
 	ofSetHexColor(0xFFFF00);
 	ofLine(SelectedPt.x-5, SelectedPt.y, SelectedPt.x+5, SelectedPt.y);
 	ofLine(SelectedPt.x, SelectedPt.y-5, SelectedPt.x, SelectedPt.y+5);
+	
+	vector<string> PresetBranch;
+	PresetBranch.push_back("Msk_Preset0");
+	PresetBranch.push_back("Msk_Preset1");
+	PresetBranch.push_back("Msk_Preset2");
+	PresetBranch.push_back("Msk_Preset3");
+	PresetBranch.push_back("Msk_Preset4");
+	PresetBranch.push_back("Msk_Preset5");
+	PresetBranch.push_back("Msk_Preset6");
+	PresetBranch.push_back("Msk_Preset7");
+	PresetBranch.push_back("Msk_Preset8");
+	PresetBranch.push_back("Msk_Preset9");
+	mask.menu.UnRegisterMenu("Save");
+	mask.menu.RegisterBranch("Save", &PresetBranch);
 }
 
 ofColor ofxCamMapper::getProjectionColor(ofPoint pts){
@@ -433,6 +471,31 @@ void ofxCamMapper::gen_Pts(){
 					Buffer_out.end();
 				}
 			}
+			Buffer_out.begin();
+			ofSetHexColor(0x0);
+			for (int i = 0;i < mask.rects.size();i++){
+				glBegin(GL_TRIANGLE_STRIP);
+				glVertex2f(mask.pts[mask.rects[i].idx[0]].x,
+						   mask.pts[mask.rects[i].idx[0]].y);
+				glVertex2f(mask.pts[mask.rects[i].idx[1]].x,
+						   mask.pts[mask.rects[i].idx[1]].y);
+				glVertex2f(mask.pts[mask.rects[i].idx[3]].x,
+						   mask.pts[mask.rects[i].idx[3]].y);
+				glVertex2f(mask.pts[mask.rects[i].idx[2]].x,
+						   mask.pts[mask.rects[i].idx[2]].y);
+				glEnd();
+			}
+			for (int i = 0;i < mask.tris.size();i++){
+				glBegin(GL_TRIANGLE_STRIP);
+				glVertex2f(mask.pts[mask.tris[i].idx[0]].x,
+						   mask.pts[mask.tris[i].idx[0]].y);
+				glVertex2f(mask.pts[mask.tris[i].idx[1]].x,
+						   mask.pts[mask.tris[i].idx[1]].y);
+				glVertex2f(mask.pts[mask.tris[i].idx[2]].x,
+						   mask.pts[mask.tris[i].idx[2]].y);
+				glEnd();
+			}
+			Buffer_out.end();
 
 		}
 		ofSetHexColor(0xFFFFFF);
@@ -502,6 +565,8 @@ void ofxCamMapper::keyPressed(ofKeyEventArgs & key){
 		camWin_pos.set		(0, 0, CAM_WIDTH,CAM_HEIGHT);
 		vert_child.SetArea	(1024,0,flex_width,flex_height);
 		src_editor.SetArea	(1024,flex_height,flex_width,flex_height);
+		mask.enableScroll = false;
+		mask.SetArea(0,900,3,3);
 	}
 	if (key.key == '2') {
 		vert_child.enableScroll = true;
@@ -510,6 +575,8 @@ void ofxCamMapper::keyPressed(ofKeyEventArgs & key){
 		vert_child.SetArea	(0,0,1024,1024/BUFFER_WIDTH*BUFFER_HEIGHT);
 		camWin_pos.set		(1024,  0, flex_width,flex_height);
 		src_editor.SetArea	(1024,flex_height, flex_width,flex_height);
+		mask.enableScroll = false;
+		mask.SetArea(0,900,3,3);
 	}
 	if (key.key == '3') {
 		vert_child.enableScroll = false;
@@ -518,7 +585,20 @@ void ofxCamMapper::keyPressed(ofKeyEventArgs & key){
 		src_editor.SetArea	(0,0,1024,1024/BUFFER_WIDTH*BUFFER_HEIGHT);
 		camWin_pos.set		(1024,  0, flex_width,flex_height);
 		vert_child.SetArea	(1024,flex_height, flex_width,flex_height);
+		mask.enableScroll = false;
+		mask.SetArea(0,900,3,3);
 	}
+	if (key.key == '4'){
+		mask.enableScroll = true;
+		vert_child.enableScroll = false;
+		src_editor.enableScroll = false;
+		mainView = MAINVIEW_MASK;
+		mask.SetArea(0,0,1024,1024/BUFFER_WIDTH*BUFFER_HEIGHT);
+		camWin_pos.set		(1024, flex_height*2, flex_width,flex_height);
+		vert_child.SetArea	(1024,0,flex_width,flex_height);
+		src_editor.SetArea	(1024,flex_height,flex_width,flex_height);
+	}
+	
 	if (key.key == ' ') inverse_affine ^= true;
 	if (key.key == 'd') drawChild ^= true;
 }

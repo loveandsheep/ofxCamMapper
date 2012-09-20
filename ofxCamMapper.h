@@ -25,6 +25,7 @@
 #define MAINVIEW_CAMERA 0
 #define MAINVIEW_PROJOUT 1
 #define MAINVIEW_SOURCE 2
+#define MAINVIEW_MASK 3
 
 class ofxCamMapper{
 public:
@@ -81,4 +82,6 @@ public:
 	int mainView;
 	ofPoint main_scroll;
 	bool drawChild;
+	
+	ofxMultiPointEditor mask;
 };
