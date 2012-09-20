@@ -35,7 +35,7 @@ void pers_rectangle::setMatrix(int width,int height){
     cvsrc[2].y = height;
     cvsrc[3].x = 0;
     cvsrc[3].y = height;
-    
+
 	//corners are in 0.0 - 1.0 range
 	//so we scale up so that they are at the window's scale
 	for(int i = 0; i < 4; i++){
