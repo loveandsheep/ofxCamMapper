@@ -512,6 +512,30 @@ void ofxCamMapper::gen_Pts(){
 		Buffer_out.begin();
 		if (drawChild) {
 			vert_child.buffer.draw(0, 0,BUFFER_WIDTH,BUFFER_HEIGHT);
+            ofEnableBlendMode(OF_BLENDMODE_ALPHA);
+			ofSetHexColor(0x0);
+			for (int i = 0;i < mask.rects.size();i++){
+				glBegin(GL_TRIANGLE_STRIP);
+				glVertex2f(mask.pts[mask.rects[i].idx[0]].x,
+						   mask.pts[mask.rects[i].idx[0]].y);
+				glVertex2f(mask.pts[mask.rects[i].idx[1]].x,
+						   mask.pts[mask.rects[i].idx[1]].y);
+				glVertex2f(mask.pts[mask.rects[i].idx[3]].x,
+						   mask.pts[mask.rects[i].idx[3]].y);
+				glVertex2f(mask.pts[mask.rects[i].idx[2]].x,
+						   mask.pts[mask.rects[i].idx[2]].y);
+				glEnd();
+			}
+			for (int i = 0;i < mask.tris.size();i++){
+				glBegin(GL_TRIANGLE_STRIP);
+				glVertex2f(mask.pts[mask.tris[i].idx[0]].x,
+						   mask.pts[mask.tris[i].idx[0]].y);
+				glVertex2f(mask.pts[mask.tris[i].idx[1]].x,
+						   mask.pts[mask.tris[i].idx[1]].y);
+				glVertex2f(mask.pts[mask.tris[i].idx[2]].x,
+						   mask.pts[mask.tris[i].idx[2]].y);
+				glEnd();
+			}
 		}
 		Buffer_out.end();
 	}
