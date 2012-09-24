@@ -14,7 +14,7 @@ ofxCamMapper::ofxCamMapper(){
 	Buffer_src.allocate(BUFFER_WIDTH, BUFFER_HEIGHT);
 	Buffer_out.allocate(BUFFER_WIDTH, BUFFER_HEIGHT);
 	Buffer_invert.allocate(BUFFER_WIDTH, BUFFER_HEIGHT);
-	camera.initGrabber(CAM_WIDTH, CAM_HEIGHT, true);
+//	camera.initGrabber(CAM_WIDTH, CAM_HEIGHT, true);
 	
 	sampleColor.set(255,0,0);
 	
@@ -611,6 +611,7 @@ void ofxCamMapper::keyPressed(ofKeyEventArgs & key){
 		vert_child.SetArea	(1024,flex_height, flex_width,flex_height);
 		mask.enableScroll = false;
 		mask.SetArea(0,900,3,3);
+<<<<<<< HEAD
 	}
 	if (key.key == '4'){
 		mask.enableScroll = true;
@@ -622,6 +623,19 @@ void ofxCamMapper::keyPressed(ofKeyEventArgs & key){
 		vert_child.SetArea	(1024,0,flex_width,flex_height);
 		src_editor.SetArea	(1024,flex_height,flex_width,flex_height);
 	}
+=======
+	}
+	if (key.key == '4'){
+		mask.enableScroll = true;
+		vert_child.enableScroll = false;
+		src_editor.enableScroll = false;
+		mainView = MAINVIEW_MASK;
+		mask.SetArea(0,0,1024,1024/BUFFER_WIDTH*BUFFER_HEIGHT);
+		camWin_pos.set		(1024, flex_height*2, flex_width,flex_height);
+		vert_child.SetArea	(1024,0,flex_width,flex_height);
+		src_editor.SetArea	(1024,flex_height,flex_width,flex_height);
+	}
+>>>>>>> mask fix
 	
 	if (key.key == ' ') inverse_affine ^= true;
 	if (key.key == 'd') drawChild ^= true;
