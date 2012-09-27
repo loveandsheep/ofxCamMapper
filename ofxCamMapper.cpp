@@ -14,7 +14,11 @@ ofxCamMapper::ofxCamMapper(){
 	Buffer_src.allocate(BUFFER_WIDTH, BUFFER_HEIGHT);
 	Buffer_out.allocate(BUFFER_WIDTH, BUFFER_HEIGHT);
 	Buffer_invert.allocate(BUFFER_WIDTH, BUFFER_HEIGHT);
+<<<<<<< HEAD
 //	camera.initGrabber(CAM_WIDTH, CAM_HEIGHT, true);
+=======
+	//camera.initGrabber(CAM_WIDTH, CAM_HEIGHT, true);
+>>>>>>> camera cut / change alpha mask
 	
 	sampleColor.set(255,0,0);
 	
@@ -63,7 +67,7 @@ ofxCamMapper::~ofxCamMapper(){
 }
 
 void ofxCamMapper::update(){
-	camera.update();
+	//camera.update();
 	
 
 	
@@ -81,7 +85,7 @@ void ofxCamMapper::drawPanel(int x,int y){
 	
 	ofPushMatrix();
 	ofTranslate(camWin_pos.x,camWin_pos.y);
-	camera.draw(0,0, camWin_pos.width, camWin_pos.height);
+	//camera.draw(0,0, camWin_pos.width, camWin_pos.height);
 	for (int i = 0;i < cam_pts.size();i++){
 		ofPoint draw_pt = ofPoint(cam_pts[i].x/CAM_WIDTH*camWin_pos.width,
 								  cam_pts[i].y/CAM_HEIGHT*camWin_pos.height);
@@ -220,7 +224,7 @@ void ofxCamMapper::drawPanel(int x,int y){
 ofColor ofxCamMapper::getProjectionColor(ofPoint pts){
 	unsigned char* pix;
 	ofColor col_;
-	pix = camera.getPixels();
+//	pix = camera.getPixels();
 	
 	col_.r = pix[(int)pts.y*3*(int)CAM_WIDTH+(int)pts.x*3];
 	col_.g = pix[(int)pts.y*3*(int)CAM_WIDTH+(int)pts.x*3+1];
@@ -472,7 +476,9 @@ void ofxCamMapper::gen_Pts(){
 				}
 			}
 			Buffer_out.begin();
-			ofSetHexColor(0x0);
+//			ofSetHexColor(0x0);
+            ofDisableAlphaBlending();
+            glColor4f(0.0, 0.0, 0.0, 0.0);
 			for (int i = 0;i < mask.rects.size();i++){
 				glBegin(GL_TRIANGLE_STRIP);
 				glVertex2f(mask.pts[mask.rects[i].idx[0]].x,
@@ -496,7 +502,7 @@ void ofxCamMapper::gen_Pts(){
 				glEnd();
 			}
 			Buffer_out.end();
-
+            ofEnableAlphaBlending();
 		}
 		ofSetHexColor(0xFFFFFF);
 //		for (int i = 0;i < (*out_pts).size();i++){
